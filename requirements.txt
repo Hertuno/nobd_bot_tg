@@ -1,1 +1,2 @@
-pytelegrambotapi
+pyTelegramBotAPI==3.7.5
+telebot~=0.0.4
