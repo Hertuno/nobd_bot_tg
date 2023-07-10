@@ -21,12 +21,15 @@ def readInfoTxt(catalog):
 
 def gen_markup():
     menuDict = {}
+    markupRow = {}
+
     for dir in listDirMenu:
         menuInfo = readInfoTxt("menu/"+dir)
         menuDict[dir] = menuInfo
-    markupRow = {}
+
     for menuPoint in menuDict:
         markupRow[menuPoint] = {'callback_data': menuPoint}
+
     markup = quick_markup(markupRow, int(config["Menu"]["menuRows"])) 
     return markup
 
@@ -41,7 +44,8 @@ def send_welcome(message):
     with open("start"+"/photo.jpg", "rb") as photoRaw:
         bot.send_photo(message.chat.id, photoRaw)
     if aboutInfo:
-        bot.reply_to(message, aboutInfo, reply_markup=gen_markup())
+        for info in aboutInfo:
+            bot.send_message(message.chat.id, info, reply_markup=gen_markup())
 
 
 @bot.callback_query_handler(func=lambda c: c.data == 'back')
@@ -50,7 +54,8 @@ def back_callback(call: types.CallbackQuery):
     with open("start"+"/photo.jpg", "rb") as photoRaw:
         bot.send_photo(call.message.chat.id, photoRaw)
     if aboutInfo:
-        bot.reply_to(call.message, aboutInfo, reply_markup=gen_markup())
+        for info in aboutInfo:
+            bot.send_message(call.message.chat.id, info, reply_markup=gen_markup())
 
 
 @bot.callback_query_handler(func=lambda c: c.data in listDirMenu)
@@ -59,7 +64,8 @@ def menu_callback(call: types.CallbackQuery):
     with open("menu/"+call.data+"/photo.jpg", "rb") as photoRaw:
         bot.send_photo(call.message.chat.id, photoRaw)
     if menuInfo:
-        bot.reply_to(call.message, menuInfo, reply_markup=back_keyboard())
+        for info in menuInfo:
+            bot.send_message(call.message.chat.id, info, reply_markup=back_keyboard())
 
 
 bot.infinity_polling()
