@@ -65,7 +65,8 @@ def menu_callback(call: types.CallbackQuery):
         bot.send_photo(call.message.chat.id, photoRaw)
     if menuInfo:
         for info in menuInfo:
-            bot.send_message(call.message.chat.id, info, reply_markup=back_keyboard())
+            bot.send_message(call.message.chat.id, info)
+        bot.send_message(call.message.chat.id, "Вернуться в меню", reply_markup=back_keyboard())
 
 
 bot.infinity_polling()
