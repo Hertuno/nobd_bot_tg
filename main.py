@@ -1,31 +1,34 @@
 import os
 import configparser
-from telebot import types, TeleBot
+import telebot
+from telebot import types
+from telebot.util import quick_markup
 
-def readInfoTxt(catalog):
-    infoRaw = open(catalog+"/info.txt", "r")
-    Info = infoRaw.readlines()
-    infoRaw.close()
-    return Info
-   
-# Берем токен из настроек и подключаемся к боту
+
 config = configparser.ConfigParser()
 config.read("settings.ini")
-APIToken = config["Telegram"]["token"]
-bot = TeleBot(APIToken)
-
-# Читаем пункты меню
+token = config["Telegram"]["token"]
+bot = telebot.TeleBot(token)
 listDirMenu = os.listdir('menu')
-for dir in listDirMenu:
-    menuInfo = readInfoTxt(dir)
-    menuDict = {dir:menuInfo}
-keyboardForChat = []
 
 
-def menu_keyboard():
-    for menuPoint in menuDict.keys():
-        keyboardForChat.append(types.InlineKeyboardButton(text=menuPoint, callback_data=menuPoint))
-    return types.InlineKeyboardMarkup(keyboard=[keyboardForChat])
+def readInfoTxt(catalog):
+    Info = False
+    with open(catalog+"/info.txt", "r") as infoRaw:
+        Info = infoRaw.readlines()
+    return Info
+
+
+def gen_markup():
+    menuDict = {}
+    for dir in listDirMenu:
+        menuInfo = readInfoTxt("menu/"+dir)
+        menuDict[dir] = menuInfo
+    markupRow = {}
+    for menuPoint in menuDict:
+        markupRow[menuPoint] = {'callback_data': menuPoint}
+    markup = quick_markup(markupRow, int(config["Menu"]["menuRows"])) 
+    return markup
 
 
 def back_keyboard():
@@ -35,20 +38,28 @@ def back_keyboard():
 @bot.message_handler(commands=['help', 'start'])
 def send_welcome(message):
     aboutInfo = readInfoTxt("start")
-    bot.reply_to(message, aboutInfo, reply_markup=menu_keyboard())
+    with open("start"+"/photo.jpg", "rb") as photoRaw:
+        bot.send_photo(message.chat.id, photoRaw)
+    if aboutInfo:
+        bot.reply_to(message, aboutInfo, reply_markup=gen_markup())
 
 
 @bot.callback_query_handler(func=lambda c: c.data == 'back')
 def back_callback(call: types.CallbackQuery):
-    aboutInfo = readInfoTxt("About")
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=aboutInfo, reply_markup=menu_keyboard())
+    aboutInfo = readInfoTxt("start")
+    with open("start"+"/photo.jpg", "rb") as photoRaw:
+        bot.send_photo(call.message.chat.id, photoRaw)
+    if aboutInfo:
+        bot.reply_to(call.message, aboutInfo, reply_markup=gen_markup())
 
 
-@bot.callback_query_handler(func=lambda c: c.data in menuDict.keys())
+@bot.callback_query_handler(func=lambda c: c.data in listDirMenu)
 def menu_callback(call: types.CallbackQuery):
-    menuInfo = readInfoTxt("menu/"+call.text)
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=menuInfo, reply_markup=back_keyboard())
+    menuInfo = readInfoTxt("menu/"+call.data)
+    with open("menu/"+call.data+"/photo.jpg", "rb") as photoRaw:
+        bot.send_photo(call.message.chat.id, photoRaw)
+    if menuInfo:
+        bot.reply_to(call.message, menuInfo, reply_markup=back_keyboard())
+
 
 bot.infinity_polling()
